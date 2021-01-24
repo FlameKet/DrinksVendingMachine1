@@ -14,11 +14,14 @@ namespace Application
             Volume = volume;
             _price = price;
         }
-
-        public string Name { get; }
-        public string Image { get;  }
-        public int Volume { get;  }
-        public int Price => _price;
+        public string Name { get; protected set; }
+        public string Image { get; protected set; }
+        public int Volume { get; protected set; }
+        public int Price
+        {
+            get => _price;
+            set=> _price = value;
+        }
         public void ReEevaluate(int price) { _price = price; }
 
         public bool Equals([AllowNull] Drink other)

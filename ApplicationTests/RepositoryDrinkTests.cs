@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Application;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,12 +10,14 @@ namespace ApplicationTests
     {
         protected Repository<Drink> RepositoryDrink;
         private readonly Drink _drink = new Drink("пепси", "url", 500, 120);
+        private  Application.Stack<Drink> _stackDrink;
         private readonly int _quality = 5;
 
         [TestInitialize]
-        public void Init() {
-            RepositoryDrink = new Repository<Drink>();
-            RepositoryDrink.Add(_drink, _quality);
+        public void Init()
+        {
+            _stackDrink = new Application.Stack<Drink>(_drink, _quality);
+            RepositoryDrink = new Repository<Drink>(new List<Application.Stack<Drink>>{ _stackDrink });
         }
 
         [TestMethod()]

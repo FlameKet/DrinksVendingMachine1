@@ -10,8 +10,14 @@ namespace Application
             Entity = entity;
             _quantity = quantity;
         }
-        public T Entity { get; }
-        public int Quantity => _quantity;
+        
+        public int Id { get; protected set; }
+        public  T Entity { get; protected set; }
+        public int Quantity
+        {
+            get => _quantity;
+            set => _quantity = value;
+        }
         public void Add(int quantity)
         {
             if (quantity <= 0) 

@@ -6,9 +6,15 @@ namespace Application
 {
     public class Repository<T> where T : IEquatable<T>
     {
+        private readonly ICollection<Stack<T>> _stacks;
+        public Repository(IEnumerable<Stack<T>> stackDrinks)
+        {
+            _stacks = new List<Stack<T>>();
+            foreach (var stackDrink in stackDrinks)
+                _stacks.Add(stackDrink);
+        }
 
-        private ICollection<Stack<T>> _stacks = new List<Stack<T>>();
-        public IReadOnlyCollection<Stack<T>> Get() => (IReadOnlyCollection<Stack<T>>)_stacks;
+        public IReadOnlyCollection<Stack<T>> Get() => (IReadOnlyCollection<Stack<T>>) _stacks;
         public Stack<T> Get(T entity) => _stacks.FirstOrDefault(x => x.Entity.Equals(entity));
         public Stack<T> Add(T entity, int quantity)
         {
