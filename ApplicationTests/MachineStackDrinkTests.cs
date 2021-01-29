@@ -1,19 +1,19 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Application;
 using System;
+using Web.Application;
 
 namespace ApplicationTests
 {
     [TestClass()]
-    public class StackDrinkTests
+    public class MachineStackDrinkTests
     {
         private readonly Drink _drink = new Drink("пепси", "url", 500, 120);
-        protected Stack<Drink> StackDrink;
+        protected MachineStack<Drink> StackDrink;
 
         [TestInitialize]
         public void Init()
         {
-            StackDrink = new Stack<Drink>(_drink, 7);
+            StackDrink = new MachineStack<Drink>(_drink, 7);
         }
 
         [TestMethod()]

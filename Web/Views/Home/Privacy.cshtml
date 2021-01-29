@@ -1,6 +1,146 @@
 ﻿@{
-    ViewData["Title"] = "Privacy Policy";
+    ViewData["Title"] = "Настройка";
 }
-<h1>@ViewData["Title"]</h1>
+@section scripts
+{
+    <script type="text/javascript">
+        $(function() {
+            var root = '@Url.Content("~")';
 
-<p>Use this page to detail your site's privacy policy.</p>
+            var Model = function() {
+                var self = this;
+                self.activeDrink = ko.observable(true);
+                self.activeCoin = ko.observable(true);
+
+                self.drinks = ko.observableArray([]);
+                var modelDrink = function (drink) {
+                    drink.showDrink = function() {
+                        self.drink(ko.mapping.fromJS({
+                            name: drink.entity.name,
+                            volume: drink.entity.volume,
+                            price: drink.entity.price,
+                            quantity: 0
+                        }));
+                    }
+                    drink.price = ko.observable(drink.entity.price);
+                    drink.priceNeedSave = ko.computed(function() {
+                        return drink.price() !== drink.entity.price;
+                    });
+                    drink.btnClass = ko.computed(function() {
+                        if (drink.priceNeedSave())
+                            return "btn btn-primary btn-sm";
+                        else
+                            return "btn btn-primary btn-sm disabled";
+                    });
+                    drink.priceSave = function() {
+                        if (drink.priceNeedSave())
+                            $.ajax({
+                                    url: `${root}/api/drinks/${drink.id}/${drink.price()}`,
+                                    type: 'PUT',
+                                    contentType: "application/json"
+                                })
+                                .done(function(data) {
+                                    drink.entity.price = data.entity.price;
+                                    drink.price(data.entity.price);
+                                })
+                                .fail(function() {
+                                    alert("Не удалось изменить цену.");
+                                    drink.price(drink.entity.price);
+                                });
+                    };
+                    drink.remove = function () {
+                        $.ajax({
+                                url: `${root}/api/drinks/${drink.id}`,
+                                type: 'DELETE',
+                                contentType: "application/json"
+                            })
+                            .done(function() { self.drinks.remove(drink); })
+                            .fail(function() { alert("Не удалось удалить напитки."); });
+                    };
+                    drink.drinkAccessible = ko.computed(function() {
+                         return drink.quantity > 0;
+                    });
+                    return drink;
+                }
+                self.loadDrinks = function() {
+                    $.getJSON(root + '/api/drinks')
+                        .done(function(data) {
+                            self.drinks(ko.utils.arrayMap(data, function(item) { return modelDrink(item); }));
+                            self.activeDrink(false);
+                        })
+                        .fail(function() {
+                            alert('Не удалось получить список доступных напитков.');
+                            self.activeDrink(false);
+                        });
+                };
+
+                var newDrink = { name: '', volume: 0, price: 0, quantity: 0 };
+                self.drink = ko.observable(ko.mapping.fromJS(newDrink));
+                self.showNewDrink = function() { self.drink(ko.mapping.fromJS(newDrink)); }
+                self.addDrinkToRepository = function () {
+                    var dataForm = {
+                        Name: self.drink().name(),
+                        //Image: self.drink().image(),
+                        Volume: self.drink().volume(),
+                        Price: self.drink().price(),
+                        Quantity: self.drink().quantity()
+                    };
+                    $.post(`${root}/api/drinks/`, dataForm)
+                        .done(function(data) {
+                            self.drinks(ko.utils.arrayMap(data, function (item) { return modelDrink(item); }));
+                            self.showNewDrink();
+                        })
+                        .fail(function() { alert("Не удалось добавить напитки в хранилище."); });
+                };
+            };
+            var vm = new Model();
+            ko.applyBindings(vm);
+            vm.loadDrinks();
+        });
+    </script>
+}
+<div class="row">
+<div class="col-6">
+    <h4>Хранилище напитков:</h4>
+    <span data-bind="visible: activeDrink"><i class="fa fa-spinner fa-spin"></i></span>
+    <table class="table table-sm">
+        <tbody data-bind="foreach: drinks">
+        <tr data-bind="click: showDrink, class: !drinkAccessible()?'table-danger':''">
+            <td data-bind="text: entity.name" class="font-weight-bold"></td>
+            <td data-bind="text: entity.volume + ' мл.'"></td>
+            <td>
+                <div class="input-group">
+                    <input data-bind="textInput: price" class="form-control form-control-sm" type="text" pattern="^[ 0-9]+$" />
+                    <div class="input-group-append">
+                        <button data-bind="class: btnClass, click: priceSave" title="Изменить цену" class="btn btn-sm btn-light"><i class="fa fa-check"></i></button>
+                    </div>
+                </div>
+            </td>
+            <td data-bind="text: quantity + ' шт.'">
+            <td>
+                <button data-bind="click: remove" title="Удалить напитки из машины" class="btn btn-sm btn-light"><i class="fa fa-times"></i></button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <form>
+        <div  class="input-group">
+            <!-- ko with: drink -->
+            <input data-bind="value: name" placeholder="Наименование" class="form-control" type="text" />
+            <input data-bind="value: volume" title="Объем мл." class="form-control" type="text"  pattern="^[ 0-9]+$"/>
+            <input data-bind="value: price" title="Цена руб." class="form-control" type="text"  pattern="^[ 0-9]+$"/>
+            <input data-bind="value: quantity" title="Количество шт." class="form-control" type="text"  pattern="^[ 0-9]+$"/>
+            <!-- /ko -->
+            <div class="input-group-append">
+                <button data-bind="click: showNewDrink" title="Очистить форму" class="btn btn-sm btn-light"><i class="fa fa-times"></i></button>
+                <button data-bind="click: addDrinkToRepository" title="Добавить в хранилище" class="btn btn-sm btn-light"><i class="fa fa-check"></i></button>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="col-6">
+    <h4>Хранилище монет:</h4>
+</div>
+    
+</div>

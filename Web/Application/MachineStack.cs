@@ -1,17 +1,18 @@
 ﻿using System;
 
-namespace Application
+namespace Web.Application
 {
-    public class Stack<T>
+    public class MachineStack<T>
     {
+        private MachineStack() { }
         private int _quantity;
-        public Stack(T entity, int quantity)
+        public MachineStack(T entity, int quantity)
         {
             Entity = entity;
             _quantity = quantity;
         }
-        
-        public int Id { get; protected set; }
+
+        public int Id { get; set; }
         public  T Entity { get; protected set; }
         public int Quantity
         {
@@ -20,6 +21,7 @@ namespace Application
         }
         public void Add(int quantity)
         {
+            if (quantity == 0) return;
             if (quantity <= 0) 
                 if (_quantity+quantity < 0)
                     throw new ArgumentOutOfRangeException(nameof(quantity));

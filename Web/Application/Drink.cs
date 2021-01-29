@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 
-namespace Application
+namespace Web.Application
 {
-    public class Drink : IEquatable<Drink>
+    public class Drink
     {
         private int _price;
         public Drink(string name, string image, int volume, int price) {
@@ -14,6 +13,7 @@ namespace Application
             Volume = volume;
             _price = price;
         }
+
         public string Name { get; protected set; }
         public string Image { get; protected set; }
         public int Volume { get; protected set; }
@@ -22,14 +22,6 @@ namespace Application
             get => _price;
             set=> _price = value;
         }
-        public void ReEevaluate(int price) { _price = price; }
-
-        public bool Equals([AllowNull] Drink other)
-        {
-            if (other is null)
-                throw new ArgumentNullException(nameof(other));
-
-            return  other.Name == Name || other.Volume == Volume;
-        }
+        public void ChangePrice(int price) { _price = price; }
     }
 }
