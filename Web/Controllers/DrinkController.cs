@@ -14,7 +14,7 @@ namespace Web.Controllers
     {
         private readonly RepositoryDrink _repositoryDrink;
 
-        public DrinkController(ApplicationContext db)
+        public DrinkController(IApplicationContext db)
         {
             _repositoryDrink = new RepositoryDrink(db);
         }

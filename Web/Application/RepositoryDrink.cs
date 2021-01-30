@@ -7,8 +7,8 @@ namespace Web.Application
 {
     public class RepositoryDrink
     {
-        private readonly ApplicationContext _db;
-        public RepositoryDrink(ApplicationContext db) { _db = db; }
+        private readonly IApplicationContext _db;
+        public RepositoryDrink(IApplicationContext db) { _db = db; }
 
         public IReadOnlyCollection<MachineStack<Drink>> Get() => _db.MachineStackDrinks.ToList();
 

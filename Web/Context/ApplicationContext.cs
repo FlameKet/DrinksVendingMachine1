@@ -12,11 +12,11 @@ namespace Web.Context
         }
 
         public DbSet<MachineStack<Drink>> MachineStackDrinks { get; set; }
+        public DbSet<MachineStack<Coin>> MachineStackCoins { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<Drink>();
-            //modelBuilder.Entity<MachineStack<Drink>>().HasKey(u => u.Entity.Id);//.HasIndex(u => new {u.Name, u.Volume}).IsUnique();
             modelBuilder.Owned<Coin>();
         }
     }

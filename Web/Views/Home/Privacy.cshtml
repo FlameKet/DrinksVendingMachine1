@@ -13,7 +13,13 @@
                 self.activeCoin = ko.observable(true);
 
                 self.drinks = ko.observableArray([]);
-                var modelDrink = function (drink) {
+                self.valueDrinks = ko.computed(function() {
+                    if (self.drinks().length === 0) return 0;
+                    var sum = 0;
+                    ko.utils.arrayForEach(self.drinks(), function(drink) { sum += drink.value(); });
+                    return sum;
+                });
+                var modelDrink = function(drink) {
                     drink.showDrink = function() {
                         self.drink(ko.mapping.fromJS({
                             name: drink.entity.name,
@@ -23,6 +29,7 @@
                         }));
                     }
                     drink.price = ko.observable(drink.entity.price);
+                    drink.value = ko.computed(function() { return drink.price() * drink.quantity; });
                     drink.priceNeedSave = ko.computed(function() {
                         return drink.price() !== drink.entity.price;
                     });
@@ -48,7 +55,7 @@
                                     drink.price(drink.entity.price);
                                 });
                     };
-                    drink.remove = function () {
+                    drink.remove = function() {
                         $.ajax({
                                 url: `${root}/api/drinks/${drink.id}`,
                                 type: 'DELETE',
@@ -58,7 +65,7 @@
                             .fail(function() { alert("Не удалось удалить напитки."); });
                     };
                     drink.drinkAccessible = ko.computed(function() {
-                         return drink.quantity > 0;
+                        return drink.quantity > 0;
                     });
                     return drink;
                 }
@@ -77,7 +84,7 @@
                 var newDrink = { name: '', volume: 0, price: 0, quantity: 0 };
                 self.drink = ko.observable(ko.mapping.fromJS(newDrink));
                 self.showNewDrink = function() { self.drink(ko.mapping.fromJS(newDrink)); }
-                self.addDrinkToRepository = function () {
+                self.addDrinkToRepository = function() {
                     var dataForm = {
                         Name: self.drink().name(),
                         //Image: self.drink().image(),
@@ -87,15 +94,87 @@
                     };
                     $.post(`${root}/api/drinks/`, dataForm)
                         .done(function(data) {
-                            self.drinks(ko.utils.arrayMap(data, function (item) { return modelDrink(item); }));
+                            self.drinks(ko.utils.arrayMap(data, function(item) { return modelDrink(item); }));
                             self.showNewDrink();
                         })
                         .fail(function() { alert("Не удалось добавить напитки в хранилище."); });
+                };
+
+                self.coins = ko.observableArray([]);
+                self.valueCoins = ko.computed(function() {
+                    if (self.coins().length === 0) return 0;
+                    var sum = 0;
+                    ko.utils.arrayForEach(self.coins(), function(coin) { sum += coin.value(); });
+                    return sum;
+                });
+                var modelCoin = function(coin) {
+                    coin.quantity = ko.observable(coin.quantity);
+                    coin.value = ko.computed(function() {
+                         return coin.entity.par * coin.quantity();
+                    });
+                    coin.quantityForAdding = ko.observable(0);
+                    coin.btnClass = ko.computed(function() {
+                        if (coin.quantityForAdding() > 0)
+                            return "btn btn-primary btn-sm";
+                        else
+                            return "btn btn-primary btn-sm disabled";
+                    });
+                    coin.plus = function() { coin.save(coin.quantityForAdding()); };
+                    coin.minus = function() { coin.save(-coin.quantityForAdding()); };
+                    coin.save = function(quantity) {
+                        $.ajax({
+                                url: `${root}/api/coins/${coin.id}/${quantity}`,
+                                type: 'PUT',
+                                contentType: "application/json"
+                            })
+                            .done(function(data) {
+                                coin.quantity(data.quantity);
+                                coin.quantityForAdding(0);
+                            })
+                            .fail(function() {
+                                if (quantity > 0)
+                                    alert("Не удалось добавить монеты в хранилище.");
+                                else
+                                    alert("Не удалось забрать монеты из хранилища.");
+                            });
+                    };
+                    coin.coinAccessible = ko.computed(function() {
+                        return coin.quantity() > 0;
+                    });
+                    coin.blocking = ko.observable(coin.entity.blocking);
+                    coin.btnBlockingClass = ko.computed(function () {
+                        if (coin.blocking() > 0)
+                            return "btn btn-primary btn-sm";
+                        else
+                            return "btn btn-primary btn-sm disabled";
+                    });
+                    coin.changeBlocking = function() {
+                        $.ajax({
+                            url: `${root}/api/coins/${coin.id}/blocking/${!coin.blocking()}`,
+                            type: 'PUT',
+                            contentType: "application/json"
+                        })
+                            .done(function (data) { coin.blocking(data.entity.blocking); })
+                            .fail(function () { alert("Не удалось заблокировать/разблокировать монету."); });
+                    };
+                    return coin;
+                }
+                self.loadCoins = function() {
+                    $.getJSON(root + '/api/coins')
+                        .done(function(data) {
+                            self.coins(ko.utils.arrayMap(data, function(item) { return modelCoin(item); }));
+                            self.activeCoin(false);
+                        })
+                        .fail(function() {
+                            alert('Не удалось получить список монет.');
+                            self.activeCoin(false);
+                        });
                 };
             };
             var vm = new Model();
             ko.applyBindings(vm);
             vm.loadDrinks();
+            vm.loadCoins();
         });
     </script>
 }
@@ -104,24 +183,41 @@
     <h4>Хранилище напитков:</h4>
     <span data-bind="visible: activeDrink"><i class="fa fa-spinner fa-spin"></i></span>
     <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Наименование</th>
+                <th>Объем</th>
+                <th>Цена</th>
+                <th>Количество</th>
+                <th>Итого</th>
+            </tr>
+        </thead>
         <tbody data-bind="foreach: drinks">
         <tr data-bind="click: showDrink, class: !drinkAccessible()?'table-danger':''">
             <td data-bind="text: entity.name" class="font-weight-bold"></td>
-            <td data-bind="text: entity.volume + ' мл.'"></td>
+            <td data-bind="text: entity.volume"></td>
             <td>
                 <div class="input-group">
-                    <input data-bind="textInput: price" class="form-control form-control-sm" type="text" pattern="^[ 0-9]+$" />
+                    <input data-bind="textInput: price" class="form-control form-control-sm" type="text" pattern="^[ 0-9]+$"/>
                     <div class="input-group-append">
                         <button data-bind="class: btnClass, click: priceSave" title="Изменить цену" class="btn btn-sm btn-light"><i class="fa fa-check"></i></button>
                     </div>
                 </div>
             </td>
-            <td data-bind="text: quantity + ' шт.'">
+            <td data-bind="text: quantity">
+            <td data-bind="text: value()">
             <td>
                 <button data-bind="click: remove" title="Удалить напитки из машины" class="btn btn-sm btn-light"><i class="fa fa-times"></i></button>
             </td>
         </tr>
         </tbody>
+        <tfoot>
+        <tr>
+            <th colspan="4"></th>
+            <th data-bind="text:valueDrinks()+' руб.'"></th>
+            <th></th>
+        </tr>
+        </tfoot>
     </table>
 
     <form>
@@ -136,11 +232,48 @@
                 <button data-bind="click: showNewDrink" title="Очистить форму" class="btn btn-sm btn-light"><i class="fa fa-times"></i></button>
                 <button data-bind="click: addDrinkToRepository" title="Добавить в хранилище" class="btn btn-sm btn-light"><i class="fa fa-check"></i></button>
             </div>
+
         </div>
     </form>
 </div>
 <div class="col-6">
     <h4>Хранилище монет:</h4>
+    <span data-bind="visible: activeCoin"><i class="fa fa-spinner fa-spin"></i></span>
+    <table class="table table-sm">
+        <thead>
+        <tr>
+            <th>Достоинтсво</th>
+            <th>Количество</th>
+            <th>Итого</th>
+            <th>Добавить/забрать</th>
+            <th>Не принимать</th>
+        </tr>
+        </thead>
+        <tbody data-bind="foreach: coins">
+        <tr data-bind="class: !coinAccessible()?'table-danger':''">
+            <td data-bind="text: entity.par" class="font-weight-bold"></td>
+            <td data-bind="text: quantity()"></td>
+            <td data-bind="text: value()"></td>
+            <td>
+                <div class="input-group">
+                    <input data-bind="textInput: quantityForAdding" class="form-control form-control-sm" type="text" pattern="^[ 0-9]+$" />
+                    <div class="input-group-append">
+                        <button data-bind="class: btnClass, click: plus" title="Добавить монеты в машину" class="btn btn-sm btn-light"><i class="fa fa-plus"></i></button>
+                        <button data-bind="class: btnClass, click: minus" title="Забрать монеты из машины" class="btn btn-sm btn-light"><i class="fa fa-minus"></i></button>
+                    </div>
+                </div>
+            </td>
+            <td class="align-content-center"><button data-bind="class: btnBlockingClass, click: changeBlocking" class="btn btn-sm btn-light"><i class="fa fa-check"></i></button></td>
+        </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="2"></th>
+                <th data-bind="text: valueCoins()+' руб.'"></th>
+                <th colspan="2"></th>
+            </tr>
+        </tfoot>
+    </table>
 </div>
     
 </div>
