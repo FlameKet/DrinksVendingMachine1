@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Web.Application;
 using Web.Context;
+using Web.Models;
 
 namespace Web.Controllers
 {
@@ -82,6 +83,31 @@ namespace Web.Controllers
             _repositoryCoins.GiveOut(machineStackCoin.Entity, 1);
 
             return Ok(machineStackCoin);
+        }
+
+        // POST api/coins/putDepositReturnBalance
+        [HttpPost("putDepositReturnBalance/{balance}")]
+        public ActionResult PutDepositReturnBalance([FromBody]MachineStackCoinModel[] model, [FromRoute]int balance)
+        {
+            if (balance <= 0) throw new ArgumentOutOfRangeException(nameof(balance));
+            if (model == null) throw new ArgumentNullException(nameof(model));
+            if (!model.Any()) return BadRequest();
+
+            var returnedCoins = _repositoryCoins.ReturnBalance(balance);
+
+            foreach (var item in model)
+                if (item.Quantity>0)
+                    if (_repositoryCoins.Get(new Coin(item.Par)).Entity.Blocking)
+                        throw new Exception($"Монеты достоинством {item.Par} не принимаются.");
+
+            foreach (var itemPut in model)
+                if (itemPut.Quantity > 0)
+                    _repositoryCoins.Add(new Coin(itemPut.Par), itemPut.Quantity);
+
+            foreach (var itemReturn in returnedCoins)
+                _repositoryCoins.Add(new Coin(itemReturn.Entity.Par), -itemReturn.Quantity);
+
+            return Ok(returnedCoins.OrderBy(x => x.Entity.Par));
         }
     }
 }

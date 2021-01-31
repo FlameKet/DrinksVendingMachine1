@@ -12,30 +12,91 @@
                 self.activeDrink = ko.observable(true);
                 self.activeCoin = ko.observable(true);
 
-                self.deposit = ko.observable(1000);
+                self.coins = ko.observableArray([]);
+                self.coinClear = function() {
+                    ko.utils.arrayForEach(self.coins(), function(coin) { coin.quantity(0); });
+                }
+                self.deposit = ko.computed(function() {
+                    if (self.coins().length === 0) return 0;
+                    var sum = 0;
+                    ko.utils.arrayForEach(self.coins(), function(coin) { sum += coin.value(); });
+                    return sum;
+                });
+                var modelCoin = function(coin) {
+                    coin.quantity = ko.observable(coin.quantity);
+                    coin.value = ko.computed(function() { return coin.entity.par * coin.quantity(); });
+                    coin.putOne = function() {
+                        if (!coin.entity.blocking) coin.quantity(coin.quantity() + 1);
+                        else alert("Монеты достоинством " + coin.entity.par + " не принимаются. Заберите ее из приемника.");
+                    };
+                    return coin;
+                }
+                self.loadCoins = function() {
+                    $.getJSON(root + '/api/coins')
+                        .done(function(data) {
+                            self.coins(ko.utils.arrayMap(data,
+                                function(item) {
+                                    return modelCoin(item);
+                                }));
+                            self.coinClear();
+                            self.activeCoin(false);
+                        })
+                        .fail(function() {
+                            alert('Не удалось получить список доступных монет.');
+                            self.activeCoin(false);
+                        });
+                };
+                self.refund = function() {
+                    self.coinClear();
+                    alert("Заберите монеты.");
+                };
 
                 self.drinks = ko.observableArray([]);
-                var modelDrink = function (drink) {
+                var modelDrink = function(drink) {
                     drink.quantity = ko.observable(drink.quantity);
-                    drink.drinkAccessible = ko.computed(function () { return drink.quantity() > 0; });
-                    drink.depositEnough = ko.computed(function () { return drink.entity.price < self.deposit(); });
-                    drink.mayGiveOut = ko.computed(function () { return drink.drinkAccessible() && drink.depositEnough(); });
-                    drink.giveOut = function() {
-                        if (drink.mayGiveOut())
+                    drink.drinkAccessible = ko.computed(function() { return drink.quantity() > 0; });
+                    drink.maySell = ko.computed(function() {
+                        return drink.drinkAccessible() && self.deposit() >= drink.entity.price;
+                    });
+                    drink.sell = function() {
+                        if (drink.maySell()) {
+                            var dataMap = ko.utils.arrayMap(self.coins(),
+                                function(coin) { return { Par: coin.entity.par, Quantity: coin.quantity() }; });
                             $.ajax({
-                                url: `${root}/api/drinks/${drink.id}/giveOut`,
-                                    type: 'PUT',
+                                    url: root +
+                                        '/api/coins/putDepositReturnBalance/' +
+                                        (self.deposit() - drink.entity.price),
+                                    data: JSON.stringify(ko.utils.arrayFilter(dataMap,
+                                        function(x) { return x.Quantity > 0; })),
+                                    type: 'POST',
+                                    dataType: "json",
                                     contentType: "application/json"
                                 })
-                                .done(function (data) { drink.quantity(data.quantity); })
-                                .fail(function() { alert("Не удалось продать напиток."); });
+                                .done(function(returnedDeposit) {
+                                    self.coins(ko.utils.arrayMap(returnedDeposit,
+                                        function(item) { return modelCoin(item); }));
+                                    $.ajax({
+                                            url: `${root}/api/drinks/${drink.id}/giveOut`,
+                                            type: 'PUT',
+                                            contentType: "application/json"
+                                        })
+                                        .done(function(data) {
+                                            drink.quantity(data.quantity);
+                                            alert("Заберите напиток");
+                                        })
+                                        .fail(function() { alert("Не удалось выдать напиток."); });
+                                })
+                                .fail(function(err) {
+                                    alert("Ошибка. " + err.responseText);
+                                });
+                        }
                     };
                     return drink;
                 };
                 self.loadDrinks = function() {
-                    $.getJSON(root +'/api/drinks')
+                    $.getJSON(root + '/api/drinks')
                         .done(function(data) {
-                            self.drinks(ko.utils.arrayMap(data, function (item) { return modelDrink(item); }));
+                            self.drinks(ko.utils.arrayMap(data, function(item) { return modelDrink(item); }));
                             self.activeDrink(false);
                         })
                         .fail(function() {
@@ -47,6 +108,7 @@
             var vm = new Model();
             ko.applyBindings(vm);
             vm.loadDrinks();
+            vm.loadCoins();
         });
     </script>
 }
@@ -62,16 +124,34 @@
                     <td data-bind="text: entity.price + ' руб.'" class="col-1"></td>
                     <td data-bind="text: quantity() + ' шт.'" class="col-1"></td>
                     <td class="col-1">
-                        <button data-bind="enable: mayGiveOut(), click: giveOut" class="btn btn-primary btn-sm">Купить</button>
+                        <button data-bind="enable: maySell(), click: sell" class="btn btn-primary btn-sm">Купить</button>
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
-    <div class="col-6">
-        <h4>Вы внесли:</h4>
-        <p class="font-weight-bold" data-bind="text: deposit()+' руб'"></p>
-        <button class="btn btn-lg btn-primary">Возврат</button>
+    <div class="col-4">
+        <h4>Внесите монеты:</h4>
+        <span data-bind="visible: activeDrink"><i class="fa fa-spinner fa-spin"></i></span>
+        <table>
+            <tbody data-bind="foreach: coins">
+                <tr data-bind="class: entity.blocking ? 'table-danger' : '' ">
+                    <td class="col-2">
+                        <a data-bind="click: putOne">
+                            <h2><span data-bind="text: entity.par" class="badge badge-pill badge-primary"></span></h2>
+                        </a>
+                    </td>
+                    <td data-bind="text: quantity() + ' шт.'" class="col-2"></td>
+                </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+                <th></th>
+                <th data-bind="text: deposit()+' руб'"></th>
+            </tr>
+            </tfoot>
+        </table>
+        <button data-bind="click: refund" class="btn btn-lg btn-primary">Возврат монет</button>
     </div>
     
 </div>
