@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
+using System.IO;
 using Web.Context;
 
 namespace Web
@@ -12,6 +14,9 @@ namespace Web
     {
         public Startup(IConfiguration configuration)
         {
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "App_Data");
+            AppDomain.CurrentDomain.SetData("DataDirectory", path);
+
             Configuration = configuration;
         }
 
@@ -20,7 +25,13 @@ namespace Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(Configuration["ConnectionStrings:DefaultConnection"]));
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "App_Data");
+
+            services.AddDbContext<ApplicationContext>(options =>
+                options.UseSqlServer(
+                    Configuration.GetConnectionString("DefaultConnection").Replace("[DataDirectory]", path)));
+            
+            //services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(Configuration["ConnectionStrings:DefaultConnection"]));
             services.AddControllersWithViews();
 
             services.AddTransient<IApplicationContext, ApplicationContext>();

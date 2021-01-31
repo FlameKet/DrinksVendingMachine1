@@ -74,23 +74,23 @@ namespace Web.Application
         private (int, List<MachineStack<Coin>>) CalculateChange(EnumCoin par, int balance, List<MachineStack<Coin>> coins)
         {
             int modulo;
+            var coin = Get(new Coin(par));
             if (balance % (int)par < balance)
             {
                 var quantity = balance / (int)par;
-                var coin = Get(new Coin(par));
                 var quantityInStock = coin.Quantity;
                 if (quantityInStock < quantity) quantity = quantityInStock;
                 if (!coin.Entity.Blocking)
                 {
-                    coins.Add(new MachineStack<Coin>(new Coin(par), quantity));
+                    coins.Add(new MachineStack<Coin>(new Coin(par) { Blocking = coin.Entity.Blocking }, quantity));
                     modulo = balance % (int) par;
                     balance = modulo;
                 }
                 else
-                    coins.Add(new MachineStack<Coin>(new Coin(par){Blocking = true}, 0));
+                    coins.Add(new MachineStack<Coin>(new Coin(par){Blocking = coin.Entity.Blocking }, 0));
             }
             else
-                coins.Add(new MachineStack<Coin>(new Coin(par), 0));
+                coins.Add(new MachineStack<Coin>(new Coin(par) { Blocking = coin.Entity.Blocking }, 0));
 
             return (balance, coins);
         }

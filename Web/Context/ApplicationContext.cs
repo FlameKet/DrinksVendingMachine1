@@ -8,7 +8,7 @@ namespace Web.Context
         public ApplicationContext(DbContextOptions<ApplicationContext> options)
             : base(options)
         {
-            Database.EnsureCreated();
+            //Database.EnsureCreated();
         }
 
         public DbSet<MachineStack<Drink>> MachineStackDrinks { get; set; }

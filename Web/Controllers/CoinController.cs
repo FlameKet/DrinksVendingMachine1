@@ -89,7 +89,7 @@ namespace Web.Controllers
         [HttpPost("putDepositReturnBalance/{balance}")]
         public ActionResult PutDepositReturnBalance([FromBody]MachineStackCoinModel[] model, [FromRoute]int balance)
         {
-            if (balance <= 0) throw new ArgumentOutOfRangeException(nameof(balance));
+            if (balance < 0 ) throw new ArgumentOutOfRangeException(nameof(balance));
             if (model == null) throw new ArgumentNullException(nameof(model));
             if (!model.Any()) return BadRequest();
 
