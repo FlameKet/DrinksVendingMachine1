@@ -20,7 +20,7 @@ namespace Web.Controllers
 
             foreach (EnumCoin par in Enum.GetValues(typeof(EnumCoin)))
                 if (_repositoryCoins.Get(new Coin(par)) == null)
-                _repositoryCoins.Add(new Coin(par), 0);
+                    _repositoryCoins.Add(new Coin(par), 0);
         }
 
         // GET: api/coins
