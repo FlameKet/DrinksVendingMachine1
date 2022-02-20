@@ -3,20 +3,20 @@
   "defaultProvider": "cdnjs",
   "libraries": [
     {
-      "library": "knockout@3.5.1",
-      "destination": "wwwroot/knockout/"
+        "library": "knockout@3.5.1",
+        "destination": "wwwroot/lib/knockout/"
     },
     {
-      "library": "knockout.mapping@2.4.1",
-      "destination": "wwwroot/knockout.mapping/"
+        "library": "knockout.mapping@2.4.1",
+        "destination": "wwwroot/lib/knockout.mapping/"
     },
     {
-      "library": "toastr.js@2.1.4",
-      "destination": "wwwroot/toastr.js/"
+        "library": "toastr.js@2.1.4",
+        "destination": "wwwroot/lib/toastr.js/"
     },
     {
-      "library": "font-awesome@5.15.2",
-      "destination": "wwwroot/font-awesome/"
+        "library": "font-awesome@5.15.2",
+        "destination": "wwwroot/lib/font-awesome/"
     }
   ]
 }
