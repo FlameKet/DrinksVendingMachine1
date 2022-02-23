@@ -5,6 +5,7 @@ using System.Linq;
 using Web.Application;
 using Web.Context;
 using Web.Models;
+using AutoMapper;
 
 namespace Web.Controllers
 {
@@ -13,10 +14,12 @@ namespace Web.Controllers
     public class CoinController : ControllerBase
     {
         private readonly RepositoryCoin _repositoryCoins;
+        private IMapper _mapper;
 
-        public CoinController(IApplicationContext db)
+        public CoinController(IApplicationContext db, IMapper mapper)
         {
             _repositoryCoins = new RepositoryCoin(db);
+            _mapper = mapper;
 
             foreach (EnumCoin par in Enum.GetValues(typeof(EnumCoin)))
                 if (_repositoryCoins.Get(new Coin(par)) == null)
@@ -25,16 +28,10 @@ namespace Web.Controllers
 
         // GET: api/coins
         [HttpGet]
-        public IEnumerable<MachineStack<Coin>> Get()
+        public IEnumerable<CoinModel> Get()
         {
-            return _repositoryCoins.Get().OrderBy(x => x.Entity.Par);
-        }
-
-        // GET api/coins/5
-        [HttpGet("{id}")]
-        public MachineStack<Coin> Get(int id)
-        {
-            return _repositoryCoins.Get(id);
+            return _mapper.Map<IEnumerable<CoinModel>>(
+                _repositoryCoins.Get().OrderBy(x => x.Entity.Par).ToArray());
         }
 
         // PUT api/coins/5/17
@@ -50,7 +47,7 @@ namespace Web.Controllers
 
             _repositoryCoins.Add(machineStackCoin.Entity, quantity);
 
-            return Ok(machineStackCoin);
+            return Ok(_mapper.Map<CoinModel>(machineStackCoin));
         }
 
         // PUT api/coins/5/true
@@ -66,28 +63,12 @@ namespace Web.Controllers
 
             _repositoryCoins.ChangeBlocking(machineStackCoin.Entity, blocking);
 
-            return Ok(machineStackCoin);
-        }
-
-        // PUT api/coins/5
-        [HttpPut("{id}/giveOut")]
-        public ActionResult GiveOut(int id)
-        {
-            if (id <= 0)
-                return BadRequest();
-
-            var machineStackCoin = _repositoryCoins.Get(id);
-            if (machineStackCoin == null) return NotFound();
-
-
-            _repositoryCoins.GiveOut(machineStackCoin.Entity, 1);
-
-            return Ok(machineStackCoin);
+            return Ok(_mapper.Map<CoinModel>(machineStackCoin));
         }
 
         // POST api/coins/putDepositReturnBalance
         [HttpPost("putDepositReturnBalance/{balance}")]
-        public ActionResult PutDepositReturnBalance([FromBody]MachineStackCoinModel[] model, [FromRoute]int balance)
+        public ActionResult PutDepositReturnBalance([FromBody]CoinModel[] model, [FromRoute]int balance)
         {
             if (balance < 0 ) throw new ArgumentOutOfRangeException(nameof(balance));
             if (model == null) throw new ArgumentNullException(nameof(model));
@@ -107,7 +88,8 @@ namespace Web.Controllers
             foreach (var itemReturn in returnedCoins)
                 _repositoryCoins.Add(new Coin(itemReturn.Entity.Par), -itemReturn.Quantity);
 
-            return Ok(returnedCoins.OrderBy(x => x.Entity.Par));
+            return Ok(_mapper.Map<IEnumerable<CoinModel>>(
+                returnedCoins.OrderBy(x => x.Entity.Par).ToArray()));
         }
     }
 }

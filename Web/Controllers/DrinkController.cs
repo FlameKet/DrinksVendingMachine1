@@ -5,6 +5,7 @@ using System.Linq;
 using Web.Application;
 using Web.Context;
 using Web.Models;
+using AutoMapper;
 
 namespace Web.Controllers
 {
@@ -13,39 +14,36 @@ namespace Web.Controllers
     public class DrinkController : ControllerBase
     {
         private readonly RepositoryDrink _repositoryDrink;
+        private readonly IMapper _mapper;
 
-        public DrinkController(IApplicationContext db)
+        public DrinkController(IApplicationContext db, IMapper mapper)
         {
             _repositoryDrink = new RepositoryDrink(db);
+            _mapper = mapper;
         }
 
         // GET: api/drinks
         [HttpGet]
-        public IEnumerable<MachineStack<Drink>> Get()
+        public IEnumerable<DrinkModel> Get()
         {
-            return _repositoryDrink.Get().OrderBy(x => x.Entity.Name);
+            return _mapper.Map<IEnumerable<DrinkModel>>(
+                _repositoryDrink.Get().OrderBy(x => x.Entity.Name).ToArray());
         }
-
-        // GET api/drinks/5
-        [HttpGet("{id}")]
-        public MachineStack<Drink> Get(int id)
-        {
-            return _repositoryDrink.Get(id);
-        }
-
+        
         // POST api/drinks
         [HttpPost]
-        public IActionResult Post([FromForm]MachineStackDrinkModel stackDrink)
+        public IActionResult Post([FromForm]DrinkModel stackDrink)
         {
             if (stackDrink == null) throw new ArgumentNullException(nameof(stackDrink));
 
             _repositoryDrink.Add(new Drink(stackDrink.Name, stackDrink.Image, stackDrink.Volume, stackDrink.Price), stackDrink.Quantity);
 
-           return Ok(Get());
+           return Ok(_mapper.Map<IEnumerable<DrinkModel>>(
+                _repositoryDrink.Get().OrderBy(x => x.Entity.Name).ToArray()));
         }
 
         // PUT api/drinks/5/17
-        [HttpPut("{id}/{price}")]
+        [HttpPut("{id}/price/{price}")]
         public ActionResult Put(int id, int price)
         {
             if (id <= 0)
@@ -57,7 +55,7 @@ namespace Web.Controllers
 
             _repositoryDrink.ChangePrice(machineStackDrink.Entity, price);
 
-            return Ok(machineStackDrink);
+            return Ok(_mapper.Map<DrinkModel>(machineStackDrink));
         }
 
         // DELETE api/drinks/5
@@ -84,10 +82,9 @@ namespace Web.Controllers
             var machineStackDrink = _repositoryDrink.Get(id);
             if (machineStackDrink == null) return NotFound();
 
-
             _repositoryDrink.GiveOut(machineStackDrink.Entity, 1);
 
-            return Ok(machineStackDrink);
+            return Ok(_mapper.Map<DrinkModel>(machineStackDrink));
         }
     }
 }

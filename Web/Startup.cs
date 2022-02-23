@@ -31,6 +31,7 @@ namespace Web
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection").Replace("[DataDirectory]", path)));
             
+            services.AddAutoMapper(typeof(Startup));
             //services.AddDbContext<ApplicationContext>(options => options.UseSqlServer(Configuration["ConnectionStrings:DefaultConnection"]));
             services.AddControllersWithViews();
 

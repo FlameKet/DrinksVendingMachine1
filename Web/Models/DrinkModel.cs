@@ -1,8 +1,8 @@
 ﻿namespace Web.Models
 {
-    public class MachineStackDrinkModel 
+    public class DrinkModel 
     {
-        
+        public int Id { get; set; }
         public string Name { get; set; }
         public string Image { get; set; }
         public int Volume { get; set; }
