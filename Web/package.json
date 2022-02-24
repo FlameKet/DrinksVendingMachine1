@@ -1,8 +1,11 @@
 {
-  "version": "1.0.0",
-  "name": "asp.net",
-  "private": true,
-  "dependencies": {
-    "@types/knockout": "^3.4.71"
-  }
+    "version": "1.0.0",
+    "name": "asp.net",
+    "private": true,
+    "dependencies": {
+        "@types/knockout": "^3.4.71"
+    },
+    "devDependencies": {
+        "@types/jquery": "^3.5.13"
+    }
 }
